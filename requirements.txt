@@ -1,0 +1,8 @@
+streamlit
+google-generativeai
+matplotlib
+seaborn
+plotly
+yfinance
+fpdf
+python-dotenv
