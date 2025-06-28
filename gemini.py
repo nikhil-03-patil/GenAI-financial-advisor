@@ -26,6 +26,34 @@ genai.configure(api_key=genai_api_key)
 # Load Gemini model
 model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
+from google.generativeai import GenerativeModel
+PRIMARY_MODEL = "gemini-1.5-flash-latest"
+FALLBACK_MODEL = "gemini-1.5-pro-latest"
+primary_model = GenerativeModel(PRIMARY_MODEL)
+fallback_model = GenerativeModel(FALLBACK_MODEL)
+
+
+# ---------------------------------------------
+# Generate with Fallback
+# ---------------------------------------------
+def generate_with_fallback(prompt: str) -> str:
+    try:
+        response = primary_model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        if "quota" in str(e).lower():
+            st.warning("⚠️ Primary model quota reached. Switching to fallback (Gemini Pro)...")
+            try:
+                response = fallback_model.generate_content(prompt)
+                return response.text
+            except Exception as fallback_error:
+                st.error("❌ Fallback model also failed.")
+                st.code(str(fallback_error))
+        else:
+            st.error("❌ Gemini API Error:")
+            st.code(str(e))
+    return "⚠️ Unable to generate a response."
+
 # ---------------------------------------------
 # Text Cleaning Function
 # ---------------------------------------------
@@ -62,8 +90,9 @@ if mode == "🔍 Ask a Financial Question":
             with st.spinner("Gemini is thinking..."):
                 try:
                     prompt = f"You are a helpful financial advisor. Be clear and practical.\n\nUser: {user_prompt}"
-                    response = model.generate_content(prompt)
-                    advice_text = clean_gemini_text(response.text)
+                    # response = model.generate_content(prompt)
+                    response_text = generate_with_fallback(prompt)
+                    advice_text = clean_gemini_text(response_text)
 
                     st.session_state.latest_advice = advice_text
                     st.success("🧠 AI Agent Advice:")
